@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "r2bagpipe"
+version = "0.0.1"
+description = "Load and group cached function-level radare2 artefacts."
+requires-python = ">=3.10"
+dependencies = ["pytest", "r2pipe", "hexio"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+]
+license = "GPL-3.0-or-later"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/valbucci/r2bagpipe"
+Issues = "https://github.com/valbucci/r2bagpipe/issues"
+
+# Ruff (PEP-8 enforcement and autoformatting)
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.ruff.lint]
+extend-select = ["E", "F", "I", "W", "D"]
+extend-ignore = ["D203", "D213"]
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 72
