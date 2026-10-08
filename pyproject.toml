@@ -13,7 +13,7 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 license = "GPL-3.0-or-later"
-license-files = ["LICEN[CS]E*"]
+license-files = ["LICENCE*"]
 
 [project.urls]
 Homepage = "https://github.com/valbucci/r2bagpipe"
