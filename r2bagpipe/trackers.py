@@ -6,6 +6,8 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Literal
 
+from .parsers import TarDataParser
+
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
@@ -120,6 +122,40 @@ class DataPathWithIndex(DataPathMaybeWithIndex):
 
 
 @dataclass
+class TarDataPathWithIndex(DataPathWithIndex):
+    """Path to a TAR file on the system and its self-contained index.
+
+    Created because TAR files may provide an index either alongside the
+    archive file or within it. The validity functionoi ensures that
+    such index exists.
+    """
+
+    _tar: TarDataParser | None = None
+
+    def __post_init__(self) -> None:
+        self._tar = TarDataParser(self.data_path, self.index_path)
+
+    @property
+    def tar(self) -> TarDataParser:
+        if self._tar is None:
+            raise RuntimeError(f"TAR not instantiated at {self.data_path}.")
+        return self._tar
+
+    def is_valid(self) -> bool:
+        """Return True if data_path and index_path exist.
+
+        - data_path is checked in the system.
+        - index_path is checked both in the system and in the TAR.
+        """
+        if not self.data_path.is_file():
+            logger.debug(f"Cannot locate TAR file at '{self.data_path}'")
+            return False
+
+        self.tar.setup_index()
+        return self.tar.is_index_ok
+
+
+@dataclass
 class BinaryDataPaths:
     """Paths to the data files for a given binary."""
 
@@ -128,8 +164,8 @@ class BinaryDataPaths:
     zigs: Path | None = None
     finfo: Path | None = None
     cg: Path | None = None
-    bytes: DataPathWithIndex | None = None
-    bytes_masked: DataPathWithIndex | None = None
+    bytes: TarDataPathWithIndex | None = None
+    bytes_masked: TarDataPathWithIndex | None = None
 
     binary_name: str = ""
 

@@ -224,10 +224,12 @@ class JsonlDataParser(BaseDataParser):
 
 
 class TarDataParser(BaseDataParser):
+    INDEX_PREFIX = "00-func-index"
+
     def __init__(
         self,
         archive_path: Path,
-        index_path: Path,
+        index_path: Path | None,
         propagate_exceptions: bool = True,
     ) -> None:
         super().__init__(archive_path, propagate_exceptions)
@@ -252,18 +254,49 @@ class TarDataParser(BaseDataParser):
             return self
 
         content_lines = []
-        if self.index_path.is_file():
+        if self.index_path is None or not self.index_path.is_file():
+            # SELF-CONTAINED
+            # The index is contained in the TAR
+            # and its name begins with 00-func-index
+            self._logger.info(f"Extracting index file from {self.file_path}")
+            with tarfile.open(self.file_path, "r:*") as temp_tar:
+                # Different file types will have different data indices
+                index_members = []
+                for member in temp_tar.getmembers():
+                    if member.name.startswith(self.INDEX_PREFIX):
+                        index_members.append(member)
+
+                if len(index_members) == 0:
+                    raise FileNotFoundError(
+                        f"Index file {self.index_path} does not exist,"
+                        f" and no file with prefix {self.INDEX_PREFIX} was"
+                        f" found in {self.file_path}."
+                    )
+                csv_header = ""
+                for index_member in index_members:
+                    with temp_tar.extractfile(index_member) as f:  # type: ignore
+                        lines = f.read().decode("utf-8").splitlines()
+                        # Get rid of header
+                        csv_header = lines[0]
+                        content_lines.extend(lines[1:])
+                # Add the header back
+                content_lines = [csv_header] + content_lines
+
+        elif self.index_path.is_file():
+            # SEPARATED
+            # The index is uncompressed at the provided path
             if not self.index_path.as_posix().endswith(".csv"):
                 self._logger.warning(
                     f"Index file {self.index_path} doesn't seem "
                     "to be a CSV file; proceeding anyway."
                 )
             with open(self.index_path, "r", encoding="utf-8", newline="") as f:
-                content_lines = f.readlines()
+                content_lines.extend(f.readlines())
         else:
-            # Fallback 1: look for a file with the same name alongside the tar
-            index_name = self.index_path.name
-            sibling_path = self.file_path.parent / index_name
+            # SIBLING
+            # The index has the base name of index_path but is placed
+            # alongside the TAR file_path
+            sibling_path = self.file_path.parent / self.index_path.name
             if sibling_path.is_file() and sibling_path != self.index_path:
                 self._logger.info(
                     f"Index file not found at {self.index_path}; "
@@ -273,24 +306,6 @@ class TarDataParser(BaseDataParser):
                     sibling_path, "r", encoding="utf-8", newline=""
                 ) as f:
                     content_lines = f.readlines()
-            else:
-                # Fallback 2: search inside the tar itself
-                self._logger.info(
-                    f"Index file {self.index_path} not found on disk, extracting from {self.file_path}"
-                )
-                with tarfile.open(self.file_path, "r:*") as temp_tar:
-                    index_member = None
-                    for member in temp_tar.getmembers():
-                        if member.name.endswith(index_name):
-                            index_member = member
-                            break
-                    if index_member is None:
-                        raise FileNotFoundError(
-                            f"Index file {self.index_path} does not exist on disk, "
-                            f"and no file ending in {index_name} was found in {self.file_path}."
-                        )
-                    with temp_tar.extractfile(index_member) as f:  # type: ignore
-                        content_lines = f.read().decode("utf-8").splitlines()
 
         reader = csv.DictReader(content_lines)
         for row in reader:

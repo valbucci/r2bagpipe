@@ -22,7 +22,11 @@ from .r2types import (
     R2FunctionInfo,
     R2Zignature,
 )
-from .trackers import BinaryDataPaths, DataPathWithIndex, DataType
+from .trackers import (
+    BinaryDataPaths,
+    DataType,
+    TarDataPathWithIndex,
+)
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -44,10 +48,16 @@ def is_address_placeholder(address: int | None) -> bool:
 def get_address(data: HasAddr) -> int:
     """Return address from radare2 dictionary."""
     try:
-        address = data["addr"]
-    except ValueError:
-        # This could happen if a version of radare2 below v6.0.0 was
-        # used to extract the data
+        if "addr" in data:
+            address = data["addr"]
+        else:
+            # Try with "offset" because radare2 < v6.0.0 used
+            # this key for addresses and Bin2ML is hard-wired
+            # to expect this key
+            address = data["offset"]
+    except KeyError:
+        # This can happen if the data is a dictionary with a different
+        # structure than expected (not a HasAddr type).
         logger.error("The dictionary doesn't contain an 'addr' key.")
         logger.debug(f"Data: {data}")
         address = ADDR_SENTINEL
@@ -536,11 +546,11 @@ def get_data_loader(binary_path: Path, raw_data_dir: Path) -> BinaryDataLoader:
         func_cfg=raw_data_dir / f"{binary_name}_func-cfg.jsonl",
         zigs=raw_data_dir / f"{binary_name}_zigs.json",
         finfo=raw_data_dir / f"{binary_name}_finfo.json",
-        bytes=DataPathWithIndex(
+        bytes=TarDataPathWithIndex(
             data_path=raw_data_dir / f"{binary_name}_bytes.tar",
             index_path=raw_data_dir / f"{binary_name}_bytes_func-index.csv",
         ),
-        bytes_masked=DataPathWithIndex(
+        bytes_masked=TarDataPathWithIndex(
             data_path=raw_data_dir / f"{binary_name}_bytes-masked.tar",
             index_path=raw_data_dir
             / f"{binary_name}_bytes-masked_func-index.csv",
