@@ -15,7 +15,7 @@ from hexio import HexStr
 
 from .parsers import JsonlDataParser, TarDataParser
 from .r2types import (
-    BIN2ML_CFG,
+    Bin2MlCfg,
     HasAddr,
     R2CallGraph,
     R2CodeInfo,
@@ -201,7 +201,7 @@ class BinaryDataLoader:
 
         cfg_path = self.data_paths.cfg
         with open(cfg_path, "r") as f:
-            cfg_list: BIN2ML_CFG = json.load(f)
+            cfg_list: Bin2MlCfg = json.load(f)
             for (cfg,) in cfg_list:
                 faddr = get_address(cfg)
                 try:

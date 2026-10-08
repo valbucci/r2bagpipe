@@ -28,7 +28,7 @@ FunctionIndexes = dict[
 # endregion BINARY STRUCTURE
 
 
-BIN2ML_CFG = list[list["R2CodeInfo"]]  # agfj @@f
+Bin2MlCfg = list[list["R2CodeInfo"]]  # agfj @@f
 HasAddr = Union["R2CodeInfo", "R2Zignature", "R2FunctionInfo"]
 
 
