@@ -5,7 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "r2bagpipe"
 version = "0.0.1"
-description = "Load and group cached function-level radare2 artefacts."
+description = "Load cached radare2 artefacts for function-level analysis."
+readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["pytest", "r2pipe", "hexio"]
 classifiers = [
