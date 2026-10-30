@@ -41,6 +41,10 @@ Below is the implementation plan for the future release of v1.0.0.
 
 ## Usage
 
+> **WARNING:**
+> Below is a general idea of how the project is going to work.
+> This is yet to be implemented and is subject to change.
+
 ```python
 # For data extraction
 from r2bagpipe import Bagpipe
