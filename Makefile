@@ -51,11 +51,10 @@ bump bump-patch bump-minor bump-major:
 
 
 .PHONY: build
-build: DIST_FILES = $(shell find dist -type f -name "${PROJ_NAME}-${PROJ_VERSION}*")
 build:
-ifeq (${DIST_FILES},)
+ifeq ($(shell find dist -type f -name "${PROJ_NAME}-${PROJ_VERSION}*"),)
 	.venv/bin/python -m build
-	@echo "Built version ${PROJ_VERSION}..."
+	@echo "Built ${PROJ_NAME} version ${PROJ_VERSION}..."
 else
 	@echo "Version ${PROJ_VERSION} build exists!"
 endif
