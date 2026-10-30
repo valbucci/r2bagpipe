@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "Load cached radare2 artefacts for function-level analysis."
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["pytest", "r2pipe", "hexio"]
+dependencies = ["r2pipe", "hexio"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Operating System :: OS Independent",
