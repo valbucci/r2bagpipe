@@ -161,7 +161,7 @@ class R2Zignature(TypedDict, total=True):
     addr: int
     name: str
     next: str  # following function name in binary
-    types: str
+    types: str  # function return and argument types
     bytes: str
     mask: str
     collisions: list[str]  # colliding function names
