@@ -174,15 +174,9 @@ class FunctionDataGrouped:
 
 
 class BinaryDataLoader:
-    def __init__(
-        self,
-        binary_path: Path,
-        data_paths: BinaryDataPaths,
-        callgraph_path: Path,
-    ) -> None:
+    def __init__(self, binary_path: Path, data_paths: BinaryDataPaths) -> None:
         self.binary_path = binary_path
         self.data_paths = data_paths
-        self.callgraph_path = callgraph_path
         self.data_entries: dict[int, FunctionDataGrouped] = {}
         self.callgraph = R2CallGraph()
         self._is_setup = False
@@ -193,6 +187,10 @@ class BinaryDataLoader:
     @property
     def binary_name(self) -> str:
         return self.binary_path.name
+
+    @property
+    def callgraph_path(self) -> Path | None:
+        return self.data_paths.cg
 
     # region SETUP DATA FILES
     def setup_cfg(self) -> Self:
@@ -432,6 +430,9 @@ class BinaryDataLoader:
         return self
 
     def setup_callgraph(self) -> Self:
+        if self.callgraph_path is None:
+            logger.warning("Callgraph path was not provided.")
+            return self
         if not self.callgraph_path.is_file():
             raise FileNotFoundError(
                 "Callgraph data file could not be found: "
@@ -557,11 +558,8 @@ def get_data_loader(binary_path: Path, raw_data_dir: Path) -> BinaryDataLoader:
         ),
         cg=raw_data_dir / f"{binary_name}_cg.json",
     )
-    callgraph_path = raw_data_dir / f"{binary_name}_cg.json"
 
     data_loader = BinaryDataLoader(
-        binary_path=binary_path,
-        data_paths=data_paths,
-        callgraph_path=callgraph_path,
+        binary_path=binary_path, data_paths=data_paths
     )
     return data_loader
