@@ -1,35 +1,14 @@
 """TypedDict schemas for radare2-extracted binary analysis data."""
 
-from typing import Literal, NotRequired, TypedDict, Union
-
-from hexio import HexOffset
+from typing import Literal, NotRequired, TypeAlias, TypedDict, Union
 
 JSONPrimitive = None | bool | int | float | str
 JSONArray = list["JSONType"]
 JSONObject = dict[str, "JSONType"]
 JSONType = JSONPrimitive | JSONArray | JSONObject
 
-
-# region BINARY STRUCTURE
-# Basic blocks graph relationships (CFG edges and numeric index)
-BlockOffset = HexOffset
-BlockEdges = dict[BlockOffset, list[BlockOffset]]  # basic block -> next blocks
-BlockIndexes = dict[BlockOffset, str]  # basic block -> index in CFG
-
-# Function graph relationships (Call graph edges and numeric index)
-FunctionOffset = HexOffset
-FunctionName = str
-FunctionEdges = dict[
-    FunctionName, list[FunctionName]
-]  # function name -> called functions
-FunctionIndexes = dict[
-    FunctionName, str
-]  # function name -> index in call graph
-# endregion BINARY STRUCTURE
-
-
-Bin2MlCfg = list[list["R2CodeInfo"]]  # agfj @@f
-HasAddr = Union["R2CodeInfo", "R2Zignature", "R2FunctionInfo"]
+Bin2MlCfg: TypeAlias = list[list["R2CodeInfo"]]  # agfj @@f
+HasAddr: TypeAlias = Union["R2CodeInfo", "R2Zignature", "R2FunctionInfo"]
 
 
 # region RADARE2 FUNCTIONS
@@ -70,12 +49,23 @@ class R2FunctionVars(TypedDict, total=True):
 
 
 # Code Info (agfj)
+
+# ReferenceTypeStr defined as per documentation in
+# <https://github.com/radareorg/radare2-skills/blob/main/r2xsql/xrefs/SKILL.md>
+# although I could not observe JUMP references in my own dataset.
+# I'll include it anyway.
+R2ReferenceTypeStr: TypeAlias = Literal[
+    "CALL", "JUMP", "CODE", "ICOD", "DATA", "STRN", "UNKN", "NULL"
+]
+R2ReferencePermStr: TypeAlias = Literal["r--", "-w-", "--x"]
+
+
 class R2OpcodeInfoReference(TypedDict, total=True):
     """Output of agfj (key: 'ops' > 'refs' / 'xrefs')."""
 
     addr: int
-    perm: Literal["r--", "-w-", "--x"]
-    type: Literal["DATA", "CODE", "CALL", "STRN", "ICOD"]  # Could be more (?)
+    type: R2ReferenceTypeStr
+    perm: R2ReferencePermStr
 
 
 class R2OpcodeInfo(TypedDict, total=True):
@@ -133,8 +123,8 @@ class R2FunctionCalls(TypedDict, total=True):
     imports: list[str]
 
 
-R2CallGraph = list[R2FunctionCalls]  # agCj
-R2FunctionList = list[R2FunctionInfo]  # aflj
+R2CallGraph: TypeAlias = list[R2FunctionCalls]  # agCj
+R2FunctionList: TypeAlias = list[R2FunctionInfo]  # aflj
 # endregion RADARE2 FUNCTIONS
 
 
