@@ -192,7 +192,8 @@ class JsonlDataParser(BaseDataParser):
                     if not re.search(r'"type"\s*:\s*"(fcn|sym)"', line_str):
                         continue
 
-                    # 2. Strip out all arrays (blocks, xrefs, etc.) to leave only root-level scalar metadata
+                    # 2. Strip out all arrays (blocks, xrefs, etc.)
+                    # to leave only root-level scalar metadata.
                     # Greedy .* ensures we swallow all nested block data.
                     metadata_str = re.sub(r"\[.*\]", "", line_str)
 
