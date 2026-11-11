@@ -9,6 +9,7 @@ from .data import FunctionZignatureData as FunctionZignatureData
 from .data import OpcodeData as OpcodeData
 from .data import OpcodeReferenceData as OpcodeReferenceData
 from .data import ReferenceType as ReferenceType
+from .data import get_data_manager as get_data_manager
 
 # Export loader
 from .loader import BinaryDataLoader as BinaryDataLoader
