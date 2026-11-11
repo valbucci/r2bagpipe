@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from r2bagpipe.data import get_data_manager
 from r2bagpipe.loader import get_data_loader
 
 SAMPLES_PATH = Path(__file__).parent / "samples"
@@ -11,13 +12,21 @@ BINARY_NAME = "vlc_3-0-20"
 BINARY_PATH = BINARIES_PATH / BINARY_NAME
 
 
-class TestBinaryDataLoader:
-    def test_paths(self):
-        assert SAMPLES_PATH.is_dir()
-        assert BINARIES_PATH.is_dir()
-        assert RAW_DATA_PATH.is_dir()
-        assert BINARY_PATH.is_file()
+def test_paths():
+    assert SAMPLES_PATH.is_dir()
+    assert BINARIES_PATH.is_dir()
+    assert RAW_DATA_PATH.is_dir()
+    assert BINARY_PATH.is_file()
 
+
+class TestBinaryDataManager:
+    def test_data_manager(self):
+        manager = get_data_manager(BINARY_PATH, RAW_DATA_PATH)
+        assert manager.n_functions > 0
+        assert manager.func_cfgs.keys() == manager.func_zigs.keys()
+
+
+class TestBinaryDataLoader:
     def test_loader(self):
         loader = get_data_loader(BINARY_PATH, RAW_DATA_PATH)
         loader.setup()

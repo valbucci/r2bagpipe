@@ -174,6 +174,23 @@ class FunctionDataGrouped:
 
 
 class BinaryDataLoader:
+    """Loads raw function-level information for a binary.
+
+    Given the paths of a binary file and the expeted output directory
+    of a Bin2ML run, read all function level information and group it
+    across different data types.
+
+    This class was necessary beacause the radare2 output of certain
+    commands such as `zj` or `agfj @@f` is stored in a single file.
+    Certain functions could have a data type but not the other;
+    it's non-trivial to zip different data types for one function.
+    This class does exactly that.
+
+    Knowledge of the binary name and data output directory is enough
+    to figure out the names of raw data files. During the setup,
+    these data files are unpacked and linked at function granularity.
+    """
+
     def __init__(self, binary_path: Path, data_paths: BinaryDataPaths) -> None:
         self.binary_path = binary_path
         self.data_paths = data_paths

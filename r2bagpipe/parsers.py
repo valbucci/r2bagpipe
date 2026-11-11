@@ -1,4 +1,13 @@
-"""Load and parse radare2 data that was cached with Bin2ML."""
+"""Load and parse radare2 data that was cached with Bin2ML.
+
+TODO: Code Cleanup
+- JsonlDataParser is too specific for func-cfg data types.
+  Strip it down and make it more generic.
+  Can always extend it for specific data types.
+- TarDataParser is too specific for bytes and bytes-masked.
+  Again, better to strip it down and extend it
+  for byte data parsing.
+"""
 
 import csv
 import json
