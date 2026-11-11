@@ -11,7 +11,7 @@ from hashlib import blake2b
 from pathlib import Path
 from typing import Self
 
-from hexio import HexStr
+from hexio import HexInt, HexStr
 
 from r2bagpipe.parsers import JsonlDataParser
 
@@ -759,13 +759,11 @@ class BinaryDataManager:
     # have been inserted in at least one dictionary.
     # Assume this list is sorted at all times.
     func_index: list[int] = field(default_factory=list)
-    n_functions: int = 0
+    # Many-to-one lookup for functions name-address relationship.
+    func_addr_lookup: dict[str, int] = field(default_factory=dict)
+    n_funcs: int = 0
 
-    import_addrs: set[int] = field(default_factory=set)
-    # TODO: exports, strings, etc.
-
-    # Dictionaries use function addresses as key
-    func_names: dict[int, str] = field(default_factory=dict)
+    # Data dictionaries use function addresses as key
     func_cfgs: dict[int, FunctionCodeData] = field(default_factory=dict)
     func_zigs: dict[int, FunctionZignatureData] = field(default_factory=dict)
     # TODO: other r2 data types (bytes, info, etc)
@@ -778,9 +776,9 @@ class BinaryDataManager:
         Returns the index of the new inserted element.
         """
         index = bisect.bisect_left(self.func_index, func_addr)
-        if index == self.n_functions or self.func_index[index] != func_addr:
+        if index == self.n_funcs or self.func_index[index] != func_addr:
             self.func_index.insert(index, func_addr)
-            self.n_functions += 1
+            self.n_funcs += 1
         return index
 
     def register_func_name(self, func_addr: int, func_name: str) -> None:
@@ -792,10 +790,20 @@ class BinaryDataManager:
         if re.match(r"fcn\.[0-9a-f]+", func_name):
             # Exit early if name is just address placeholder
             return
-        if func_addr not in self.func_names:
-            self.func_names[func_addr] = normalise_func_name(func_name)
-            if "imp." in func_name:
-                self.import_addrs.add(func_addr)
+        if func_name not in self.func_addr_lookup:
+            self.func_addr_lookup[func_name] = func_addr
+
+    def get_func_addr(self, func_name: str) -> int:
+        """Return address from function name.
+
+        If address is not found return -1.
+        """
+        addr_match = re.match(r"fcn\.([0-9a-f]+)", func_name)
+        if addr_match:
+            # If name is just address placeholder
+            # retrieve the function address from it
+            return HexInt(addr_match.group(1))
+        return self.func_addr_lookup.get(func_name, -1)
 
     def register_cfg_data(self, cfg_path: Path) -> int:
         """Register all functions CFG data in binary.
