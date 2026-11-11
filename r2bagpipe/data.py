@@ -18,6 +18,7 @@ from r2bagpipe.parsers import JsonlDataParser
 from .r2types import (
     Bin2MlCfg,
     R2BlockInfo,
+    R2CallGraph,
     R2CodeInfo,
     R2OpcodeInfo,
     R2OpcodeInfoReference,
@@ -759,9 +760,17 @@ class BinaryDataManager:
     # have been inserted in at least one dictionary.
     # Assume this list is sorted at all times.
     func_index: list[int] = field(default_factory=list)
+    n_funcs: int = 0
+
     # Many-to-one lookup for functions name-address relationship.
     func_addr_lookup: dict[str, int] = field(default_factory=dict)
-    n_funcs: int = 0
+
+    # All names including functions and external imports (e.g. APIs).
+    name_symbols: set[str] = field(default_factory=set)
+
+    # Call references by each function, including external imports.
+    # Key and value tuple-elements are normalised function names.
+    func_imports: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
     # Data dictionaries use function addresses as key
     func_cfgs: dict[int, FunctionCodeData] = field(default_factory=dict)
@@ -782,16 +791,20 @@ class BinaryDataManager:
         return index
 
     def register_func_name(self, func_addr: int, func_name: str) -> None:
-        """Add this function name to the list if not already there.
-
-        Normalises the name before adding it to the list.
-        Register the function as import if func_name contains "imp.".
-        """
+        """Add this function name to the list if not already there."""
         if re.match(r"fcn\.[0-9a-f]+", func_name):
             # Exit early if name is just address placeholder
             return
         if func_name not in self.func_addr_lookup:
+            # Register both the raw and the normalised name
             self.func_addr_lookup[func_name] = func_addr
+
+            # NOTE: There is a potential risk of overwriting if two
+            #       different raw names normalise to equal names.
+            #       This risk is likely negligible.
+            normalised_name = normalise_func_name(func_name)
+            self.func_addr_lookup[normalised_name] = func_addr
+            self.name_symbols.add(normalised_name)
 
     def get_func_addr(self, func_name: str) -> int:
         """Return address from function name.
@@ -872,11 +885,39 @@ class BinaryDataManager:
             n_registered += 1
         return n_registered
 
+    def register_cg_data(self, cg_path: Path) -> int:
+        """Register all function call graph references.
+
+        This one is trickier because radare2 doesn't give us addresses.
+        Also, the radare2's CG data includes references to external
+        API functions not included in the other data types.
+
+        Functions won't be registered in `func_index` but they will be
+        included in the `name_symbols` set.
+        """
+        with open(cg_path, "r") as cg_file:
+            cg: R2CallGraph = json.load(cg_file)
+
+        n_registered = 0
+        for cg_node in cg:
+            func_name = normalise_func_name(cg_node["name"])
+            outputs = tuple(
+                normalise_func_name(out_name)
+                for out_name in cg_node["imports"]
+            )
+            self.func_imports[func_name] = outputs
+            self.name_symbols.add(func_name)
+            self.name_symbols.update(outputs)
+            n_registered += 1
+
+        return n_registered
+
 
 FILES_PATTERNS = {
     "cfg": "{}_cfg.json",
     "func-cfg": "{}_func-cfg.jsonl",
-    "zigs": "{}_zigs.json",
+    "zig": "{}_zigs.json",
+    "cg": "{}_cg.json",
 }
 
 
@@ -885,15 +926,20 @@ def get_data_manager(
 ) -> BinaryDataManager:
     binary_name = binary_path.name
 
-    def _get_cfg_path() -> Path:
-        _cfg_file_name = FILES_PATTERNS["cfg"].format(binary_name)
-        if not (raw_data_dir / _cfg_file_name).is_file():
-            _cfg_file_name = FILES_PATTERNS["func-cfg"].format(binary_name)
-        return raw_data_dir / _cfg_file_name
+    def get_path(data_type: str) -> Path:
+        return raw_data_dir / FILES_PATTERNS[data_type].format(binary_name)
 
-    zig_path = raw_data_dir / FILES_PATTERNS["zigs"].format(binary_name)
-    cfg_path = _get_cfg_path()
+    def get_cfg_path() -> Path:
+        _cfg_file_path = get_path("cfg")
+        if _cfg_file_path.is_file():
+            return _cfg_file_path
+        return get_path("func-cfg")
+
+    cfg_path = get_cfg_path()
+    zig_path = get_path("zig")
+    cg_path = get_path("cg")
     data_manager = BinaryDataManager()
-    data_manager.register_zig_data(zig_path)
     data_manager.register_cfg_data(cfg_path)
+    data_manager.register_zig_data(zig_path)
+    data_manager.register_cg_data(cg_path)
     return data_manager
