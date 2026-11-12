@@ -17,6 +17,7 @@ from r2bagpipe.parsers import JsonlDataParser
 
 from .r2types import (
     Bin2MlCfg,
+    R2BinInfo,
     R2BlockInfo,
     R2CallGraph,
     R2CodeInfo,
@@ -756,7 +757,12 @@ class FunctionZignatureData:
 class BinaryDataManager:
     """Manage multiple function data types for one binary file."""
 
+    # General binary information
     binary_name: str
+    parent_dir: str = ""
+    format: str = ""
+    arch: str = ""
+    bitness: int = -1
 
     # Function index keeps all addresses that
     # have been inserted in at least one dictionary.
@@ -778,6 +784,41 @@ class BinaryDataManager:
     func_cfgs: dict[int, FunctionCodeData] = field(default_factory=dict)
     func_zigs: dict[int, FunctionZignatureData] = field(default_factory=dict)
     # TODO: other r2 data types (bytes, info, etc)
+
+    @property
+    def bin_class(self) -> str:
+        """Return binary class (format+bitness).
+
+        For example, follows the format ELF32.
+        Returns empty string if format or bitness are sentinels.
+        """
+        if self.format == "" or self.bitness == -1:
+            return ""
+        return f"{self.format}{self.bitness}"
+
+    @property
+    def arch_class(self) -> str:
+        """Return architecture class (family+bitness).
+
+        For example, follows the format ARM64, except for x64 family
+        which maps to x86 for 32-bit and x64 for 64-bit binaries.
+        Returns empty string if arch or bitness are sentinels.
+        """
+        if self.arch == "" or self.bitness == -1:
+            return ""
+        if self.arch == "x86":
+            if self.bitness == 64:
+                return "x64"
+            elif self.bitness == 32:
+                return "x86"
+            else:
+                # This shouldn't happen
+                raise NotImplementedError(
+                    f"Invalid bitness of {self.bitness} for"
+                    " x86 architecture family"
+                )
+        else:
+            return f"{self.arch.upper()}{self.bitness}"
 
     def register_func_addr(self, func_addr: int) -> int:
         """Add this address to the index if not already there.
@@ -819,6 +860,21 @@ class BinaryDataManager:
             # retrieve the function address from it
             return HexInt(addr_match.group(1))
         return self.func_addr_lookup.get(func_name, -1)
+
+    def register_bininfo_data(self, bininfo_path: Path) -> None:
+        """Register general information about the binary file."""
+        with open(bininfo_path, "r") as bininfo_file:
+            bininfo: R2BinInfo = json.load(bininfo_file)
+
+        core = bininfo.get("core")
+        self.parent_dir = Path(core["file"]).parent.name
+
+        bin = bininfo.get("bin")
+        if bin is None:
+            return
+        self.format = bin.get("bintype", "").upper()
+        self.arch = bin.get("arch", "")
+        self.bitness = bin.get("bits", -1)
 
     def register_cfg_data(self, cfg_path: Path) -> int:
         """Register all functions CFG data in binary.
@@ -920,6 +976,7 @@ FILES_PATTERNS = {
     "func-cfg": "{}_func-cfg.jsonl",
     "zig": "{}_zigs.json",
     "cg": "{}_cg.json",
+    "bininfo": "{}_bininfo.json",
 }
 
 
@@ -936,10 +993,12 @@ def get_data_manager(
             return _cfg_file_path
         return get_path("func-cfg")
 
+    bininfo_path = get_path("bininfo")
     cfg_path = get_cfg_path()
     zig_path = get_path("zig")
     cg_path = get_path("cg")
     data_manager = BinaryDataManager(binary_name)
+    data_manager.register_bininfo_data(bininfo_path)
     data_manager.register_cfg_data(cfg_path)
     data_manager.register_zig_data(zig_path)
     data_manager.register_cg_data(cg_path)

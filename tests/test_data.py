@@ -22,6 +22,14 @@ def test_paths():
 class TestBinaryDataManager:
     def test_data_manager(self):
         manager = get_data_manager(BINARY_PATH.name, RAW_DATA_PATH)
+        assert manager.parent_dir == "samples"
+        assert manager.format == "ELF"
+        # arch family is x86 even though x64 would be arch+bitness
+        assert manager.arch == "x86"
+        assert manager.bitness == 64
+        assert manager.bin_class == "ELF64"
+        assert manager.arch_class == "x64"
+
         assert manager.n_funcs > 0
         assert manager.func_cfgs.keys() == manager.func_zigs.keys()
 
