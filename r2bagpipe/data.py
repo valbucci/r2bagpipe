@@ -756,6 +756,8 @@ class FunctionZignatureData:
 class BinaryDataManager:
     """Manage multiple function data types for one binary file."""
 
+    binary_name: str
+
     # Function index keeps all addresses that
     # have been inserted in at least one dictionary.
     # Assume this list is sorted at all times.
@@ -937,7 +939,7 @@ def get_data_manager(
     cfg_path = get_cfg_path()
     zig_path = get_path("zig")
     cg_path = get_path("cg")
-    data_manager = BinaryDataManager()
+    data_manager = BinaryDataManager(binary_name)
     data_manager.register_cfg_data(cfg_path)
     data_manager.register_zig_data(zig_path)
     data_manager.register_cg_data(cg_path)
