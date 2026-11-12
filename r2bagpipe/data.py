@@ -922,9 +922,8 @@ FILES_PATTERNS = {
 
 
 def get_data_manager(
-    binary_path: Path, raw_data_dir: Path
+    binary_name: str, raw_data_dir: Path
 ) -> BinaryDataManager:
-    binary_name = binary_path.name
 
     def get_path(data_type: str) -> Path:
         return raw_data_dir / FILES_PATTERNS[data_type].format(binary_name)

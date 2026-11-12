@@ -21,7 +21,7 @@ def test_paths():
 
 class TestBinaryDataManager:
     def test_data_manager(self):
-        manager = get_data_manager(BINARY_PATH, RAW_DATA_PATH)
+        manager = get_data_manager(BINARY_PATH.name, RAW_DATA_PATH)
         assert manager.n_funcs > 0
         assert manager.func_cfgs.keys() == manager.func_zigs.keys()
 
