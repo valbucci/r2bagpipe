@@ -50,7 +50,15 @@ PLACEHOLDER_ADDR = 0xFFFFFFFFFFFFFFFF  # Same as 2**64 - 1
 
 def is_valid_addr(addr: int | None):
     """Check if address is set to a valid value."""
-    return addr is None or addr == PLACEHOLDER_ADDR
+    return addr is not None and addr != PLACEHOLDER_ADDR
+
+
+def filter_placeholder_addr(addr: int | None) -> int | None:
+    """Parse placeholder address as None."""
+    if addr != PLACEHOLDER_ADDR:
+        return addr
+    else:
+        return None
 
 
 def get_addr(data) -> int:
@@ -516,8 +524,8 @@ class BasicBlockData:
 
             return cls(
                 addr=get_addr(block_info),
-                jump=block_info.get("jump"),
-                fail=block_info.get("fail"),
+                jump=filter_placeholder_addr(block_info.get("jump")),
+                fail=filter_placeholder_addr(block_info.get("fail")),
                 n_bytes=block_info["size"],
                 n_instr=n_instr,
                 n_reads=n_reads,
