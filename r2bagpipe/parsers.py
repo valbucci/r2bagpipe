@@ -197,8 +197,10 @@ class JsonlDataParser(BaseDataParser):
                 line_str = line.strip()
                 if lazy:
                     # Parse JSON line faster with regexes
-                    # 1. Skip if not a function or symbol line
-                    if not re.search(r'"type"\s*:\s*"(fcn|sym)"', line_str):
+                    # 1. Skip if not a function, symbol, or call target
+                    if not re.search(
+                        r'"type"\s*:\s*"(fcn|sym|loc)"', line_str
+                    ):
                         continue
 
                     # 2. Strip out all arrays (blocks, xrefs, etc.)
@@ -223,7 +225,7 @@ class JsonlDataParser(BaseDataParser):
                     parsed = json.loads(line_str)
                     if "offset" not in parsed and "addr" not in parsed:
                         continue  # Must have an address identifier
-                    if parsed.get("type") not in ("fcn", "sym", None):
+                    if parsed.get("type") not in ("fcn", "sym", "loc", None):
                         continue  # Skip non-function data
                     yield parsed, line_str
             except Exception:
